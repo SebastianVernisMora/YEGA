@@ -14,7 +14,8 @@ const { protect, authorize } = require('./middleware/authMiddleware');
 const path = require('path');
 const adminRoutes = require('./routes/adminRoutes');
 
-dotenv.config(); // Carga variables de entorno desde .env
+// Carga variables de entorno desde backend/.env de forma robusta, independientemente del cwd
+dotenv.config({ path: require('path').join(__dirname, '.env') });
 
 const app = express();
 
