@@ -18,6 +18,7 @@ const adminRoutes = require('./routes/adminRoutes');
 dotenv.config({ path: require('path').join(__dirname, '.env') });
 
 const app = express();
+app.set('trust proxy', 1); // Confiar en el primer proxy (ej. ngrok, Vercel)
 
 // Middleware
 // Seguridad básica

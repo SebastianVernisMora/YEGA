@@ -310,26 +310,13 @@ exports.resendOTP = async (req, res) => {
 // @desc    Obtener perfil del usuario autenticado
 // @route   GET /api/auth/profile
 // @access  Private
-exports.getProfile = async (req, res) => {
-  try {
-    const usuario = await Usuario.findById(req.user.id).select('-password');
-    
-    if (!usuario) {
-      return res.status(404).json({ message: 'Usuario no encontrado' });
-    }
-
-    res.json({
-      success: true,
-      usuario
-    });
-
-  } catch (error) {
-    console.error('Error obteniendo perfil:', error);
-    res.status(500).json({ 
-      message: 'Error interno del servidor',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
-  }
+exports.getProfile = (req, res) => {
+  // El middleware 'protect' ya ha verificado y adjuntado el usuario a req.user
+  // Simplemente devolvemos el usuario que ya tenemos.
+  res.json({
+    success: true,
+    usuario: req.user // req.user es establecido por el middleware 'protect'
+  });
 };
 
 // @desc    Actualizar perfil del usuario

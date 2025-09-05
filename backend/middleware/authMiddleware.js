@@ -4,44 +4,45 @@ const Usuario = require('../models/Usuario');
 
 // Middleware para proteger rutas (verifica JWT)
 exports.protect = async (req, res, next) => {
+  console.log('\n[AUTH.PROTECT] Iniciando verificación de token...');
   let token;
 
   if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
     try {
-      // Extraer token del header
       token = req.headers.authorization.split(' ')[1];
-      
-      // Verificar token
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      console.log('[AUTH.PROTECT] Token extraído:', token);
 
-      // Obtener usuario del token
+      console.log('[AUTH.PROTECT] Decodificando token con JWT_SECRET...');
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      console.log('[AUTH.PROTECT] Token decodificado exitosamente:', decoded);
+
+      console.log(`[AUTH.PROTECT] Buscando usuario en BD con ID: ${decoded.id}`);
       req.user = await Usuario.findById(decoded.id).select('-password');
       
       if (!req.user) {
-        return res.status(401).json({ message: 'Usuario no encontrado' });
+        console.error('[AUTH.PROTECT] Error: Usuario no encontrado en la BD para el ID del token.');
+        return res.status(401).json({ message: 'No autorizado, usuario del token no encontrado' });
       }
+      console.log('[AUTH.PROTECT] Usuario encontrado:', { id: req.user._id, email: req.user.email, rol: req.user.rol });
 
-      // Verificar que el usuario esté activo
       if (!req.user.activo) {
+        console.error('[AUTH.PROTECT] Error: La cuenta del usuario no está activa.');
         return res.status(401).json({ message: 'Cuenta desactivada' });
       }
-
+      console.log('[AUTH.PROTECT] Verificación completada. Pasando al siguiente middleware.');
       next();
     } catch (error) {
-      console.error('Error en autenticación:', error);
-      
+      console.error('[AUTH.PROTECT] ¡Error durante la verificación del token!:', error.name, error.message);
       if (error.name === 'JsonWebTokenError') {
-        return res.status(401).json({ message: 'Token inválido' });
+        return res.status(401).json({ message: 'Token inválido o malformado' });
       } else if (error.name === 'TokenExpiredError') {
-        return res.status(401).json({ message: 'Token expirado' });
+        return res.status(401).json({ message: 'Token ha expirado' });
       }
-      
-      return res.status(401).json({ message: 'No autorizado' });
+      return res.status(401).json({ message: 'No autorizado, fallo en la verificación' });
     }
-  }
-
-  if (!token) {
-    return res.status(401).json({ message: 'No autorizado, no hay token' });
+  } else {
+      console.error("[AUTH.PROTECT] Error: No se encontró el header 'Authorization' o no empieza con 'Bearer'.");
+      return res.status(401).json({ message: 'No autorizado, no hay token' });
   }
 };
 

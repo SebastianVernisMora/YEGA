@@ -32,8 +32,20 @@ export const AuthProvider = ({ children }) => {
       const response = await apiClient.get('/auth/profile')
       setUser(response.data.usuario)
     } catch (error) {
-      console.error('Error cargando perfil:', error)
-      logout() // Si hay error, cerrar sesión
+      console.error('--- ¡FALLO AL CARGAR PERFIL DE USUARIO! ---');
+      console.error('Este es el error que causa el cierre de sesión.');
+      if (error.response) {
+        console.error('Datos de la respuesta:', error.response.data);
+        console.error('Estado de la respuesta:', error.response.status);
+        console.error('Cabeceras de la respuesta:', error.response.headers);
+      } else if (error.request) {
+        console.error('La solicitud fue enviada pero no se recibió respuesta:', error.request);
+      } else {
+        console.error('Error al configurar la solicitud:', error.message);
+      }
+      console.error('Objeto de error completo:', error);
+      console.error('--- FIN DEL REPORTE DE ERROR ---');
+      logout(); // Si hay error, cerrar sesión
     } finally {
       setLoading(false)
     }
