@@ -24,8 +24,38 @@ const app = express();
 app.use(helmet());
 
 // CORS restringido por FRONTEND_URL (o relajado en desarrollo)
-const allowedOrigin = process.env.FRONTEND_URL || '*';
-app.use(cors({ origin: allowedOrigin, credentials: true }));
+const frontendUrl = process.env.FRONTEND_URL || '*';
+const allowedOrigins = frontendUrl === '*' ? '*' : frontendUrl.split(',').map(origin => origin.trim());
+
+app.use(cors({
+  origin: (origin, callback) => {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+
+    if (allowedOrigins === '*') {
+      return callback(null, true);
+    }
+
+    if (Array.isArray(allowedOrigins)) {
+      for (const allowedOrigin of allowedOrigins) {
+        // Exact match
+        if (allowedOrigin === origin) {
+          return callback(null, true);
+        }
+        // Wildcard match
+        if (allowedOrigin.includes('*')) {
+          const regex = new RegExp('^' + allowedOrigin.replace(/\./g, '\\.').replace(/\*/g, '.*') + '$');
+          if (regex.test(origin)) {
+            return callback(null, true);
+          }
+        }
+      }
+    }
+
+    callback(new Error('Not allowed by CORS'));
+  },
+  credentials: true,
+}));
 
 // Rate limit global (además de los específicos en rutas OTP)
 const apiLimiter = rateLimit({
@@ -71,7 +101,7 @@ if (process.env.NODE_ENV === 'production') {
 
 // Ruta de prueba
 app.get('/', (req, res) => {
-  res.json({ 
+  res.json({
     message: 'API de YEGA funcionando!',
     version: '1.0.0',
     timestamp: new Date().toISOString()
@@ -81,7 +111,7 @@ app.get('/', (req, res) => {
 // Middleware de manejo de errores global
 app.use((err, req, res, next) => {
   console.error(err.stack);
-  res.status(500).json({ 
+  res.status(500).json({
     message: 'Error interno del servidor',
     error: process.env.NODE_ENV === 'development' ? err.message : 'Algo salió mal'
   });
